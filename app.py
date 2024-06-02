@@ -1,5 +1,6 @@
 from dash import Dash, html, dcc, Input, Output, callback
 import plotly.express as px
+import plotly.graph_objects as go
 import pandas as pd
 import requests
 import math
@@ -53,12 +54,13 @@ if data is not None:
 
     # Define the layout of the app
     app.layout = html.Div([
-        html.H1(children='AuroraDash', style={'textAlign': 'center'}),
+        html.H1(children='auroradash'),
         dcc.DatePickerRange(
             id='date-picker-range',
             start_date=df['time_tag'].min(),
             end_date=df['time_tag'].max(),
-            display_format='YYYY-MM-DD HH:mm:ss'
+            display_format='YYYY-MM-DD',
+            className='date-picker-range'
         ),
         dcc.Graph(id='graph-content')
     ])
@@ -69,25 +71,45 @@ if data is not None:
         Input('date-picker-range', 'start_date'),
         Input('date-picker-range', 'end_date')
     )
+
     def update_graph(start_date, end_date):
         # Filter dataframe based on selected date range
         mask = (df['time_tag'] >= start_date) & (df['time_tag'] <= end_date)
         filtered_df = df.loc[mask]
 
+        color_mapping = {
+        'green': 'green',
+        'yellow': 'yellow',
+        'orange': 'orange',
+        'red': 'red',
+        'darkred': 'darkred',
+        'brown': 'brown'
+    }
+
         fig = px.bar(filtered_df, x='time_tag', y='Kp', title='NOAA Planetary K-index', color='color',
-                     color_discrete_map={
-                         'green': 'green',
-                         'yellow': 'yellow',
-                         'orange': 'orange',
-                         'red': 'red',
-                         'darkred': 'darkred',
-                         'brown': 'brown'
-                     })
+                     color_discrete_map=color_mapping)
+        
+        tickvals = []
+        ticktext = []
+        for i, time in enumerate(filtered_df['time_tag']):
+            tickvals.append(time)
+            if time.hour == 0:
+                ticktext.append(time.strftime('%H:%M %d %b'))
+            else:
+                ticktext.append(time.strftime('%H:%M'))
+        
         fig.update_layout(
             xaxis_title='Universal Time', 
             yaxis_title='Kp Index',
-            yaxis=dict(range=[0, 9])  # Set y-axis range to 0-9
+            yaxis=dict(range=[0, 9]),  # Set y-axis range to 0-9
+            xaxis=dict(
+                tickmode='array',
+                tickvals=tickvals,
+                ticktext=ticktext
+                ),
+            showlegend=False
         )
+
         return fig
 
     # Run the app
